@@ -20,7 +20,8 @@ const PaymentComplete = () => {
       // First, create the booking to get the bookingId
       const createBookingAndPayment = async () => {
         try {
-          const bookingResponse = await fetch('http://localhost:5001/api/bookings', {
+          const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+          const bookingResponse = await fetch(`${apiUrl}/api/bookings`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

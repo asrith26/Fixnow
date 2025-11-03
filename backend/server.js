@@ -26,13 +26,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/bookings', require('./routes/bookings'));
 app.use('/api/payments', require('./routes/payments'));
 
-// Serve static files from the React app build directory
-app.use(express.static(path.join(__dirname, '../build')));
-
-// Catch all handler: send back React's index.html file for client-side routing
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../build/index.html'));
-});
+// API-only server, no static file serving
 
 // Default route
 app.get('/', (req, res) => {

@@ -30,7 +30,8 @@ export const PaymentHistoryProvider = ({ children }) => {
 
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5001/api/payments', {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${apiUrl}/api/payments`, {
         headers: getAuthHeaders()
       });
 
@@ -66,7 +67,8 @@ export const PaymentHistoryProvider = ({ children }) => {
         time: paymentData.time
       };
 
-      const response = await fetch('http://localhost:5001/api/payments', {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${apiUrl}/api/payments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

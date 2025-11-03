@@ -55,10 +55,10 @@ export const BookingProvider = ({ children }) => {
 
   const fetchUserBookings = async () => {
     if (!currentUser?.id) return;
-
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5001/api/bookings', {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${apiUrl}/api/bookings`, {
         headers: getAuthHeaders()
       });
 
@@ -147,7 +147,8 @@ export const BookingProvider = ({ children }) => {
         professional: 'Professional' // This would come from the selected professional
       };
 
-      const response = await fetch('http://localhost:5001/api/bookings', {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${apiUrl}/api/bookings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -201,7 +202,8 @@ export const BookingProvider = ({ children }) => {
     try {
       setLoading(true);
 
-      const response = await fetch(`http://localhost:5001/api/bookings/${bookingId}/status`, {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${apiUrl}/api/bookings/${bookingId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -243,7 +245,8 @@ export const BookingProvider = ({ children }) => {
     try {
       setLoading(true);
 
-      const response = await fetch(`http://localhost:5001/api/bookings/${bookingId}`, {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${apiUrl}/api/bookings/${bookingId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
