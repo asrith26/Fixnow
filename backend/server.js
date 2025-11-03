@@ -61,6 +61,24 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+// Socket.io setup for real-time features
+const io = require('socket.io')(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || "https://fixnow.vercel.app",
+    methods: ["GET", "POST"]
+  }
+});
+
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});
+
+module.exports = { app, server, io };
