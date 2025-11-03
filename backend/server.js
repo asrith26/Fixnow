@@ -19,7 +19,10 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || ["http://localhost:3000", "http://localhost:3001", "https://fixnow-react.vercel.app"],
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -65,10 +68,19 @@ const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Error: Port ${PORT} is already in use. Please stop the other process or use a different port.`);
+    process.exit(1);
+  } else {
+    console.error('An unexpected server error occurred:', err);
+  }
+});
+
 // Socket.io setup for real-time features
 const io = require('socket.io')(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "https://fixnow.vercel.app",
+    origin: process.env.FRONTEND_URL || "http://localhost:5000",
     methods: ["GET", "POST"]
   }
 });
