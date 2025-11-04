@@ -26,9 +26,6 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from uploads directory
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 // Database connection
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/fixnow', {
   useNewUrlParser: true,
@@ -50,6 +47,17 @@ app.use('/api/admin', adminRoutes);
 // Health check route
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Serve static files from the React app build directory
+app.use(express.static(path.join(__dirname, 'build')));
+
+// Catch all handler: send back React's index.html file for any non-API routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
 // Default route
