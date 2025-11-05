@@ -2,6 +2,7 @@ services:
   - type: web
     name: fixnow-backend
     runtime: node
+    rootDir: backend
     buildCommand: npm install
     startCommand: npm start
     envVars:
