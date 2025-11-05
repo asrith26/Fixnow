@@ -1,126 +1,109 @@
 const express = require('express');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || 'your-stripe-secret-key');
 const Payment = require('../models/Payment');
-const Booking = require('../models/Booking');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
 
-// Create payment intent
-router.post('/create-intent', auth, async (req, res) => {
+// Get all payments for authenticated user
+router.get('/', auth, async (req, res) => {
   try {
-    const { bookingId, amount } = req.body;
+    const payments = await Payment.find({ user: req.user._id })
+      .populate('bookingId', 'service date time')
+      .sort({ createdAt: -1 });
+    res.json({ payments });
+  } catch (error) {
+    console.error('Get payments error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
-    const booking = await Booking.findById(bookingId);
-    if (!booking) {
-      return res.status(404).json({ message: 'Booking not found' });
-    }
-
-    if (booking.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount * 100, // Stripe expects amount in cents
-      currency: 'usd',
-      metadata: {
-        bookingId: bookingId,
-        userId: req.user._id.toString(),
-      },
-    });
+// Create a new payment
+router.post('/', auth, async (req, res) => {
+  try {
+    const { bookingId, amount, paymentMethod, service, location, date, time } = req.body;
 
     const payment = new Payment({
       user: req.user._id,
-      booking: bookingId,
-      amount,
-      stripePaymentIntentId: paymentIntent.id,
+      bookingId,
+      amount: amount || 125.00,
+      paymentMethod: paymentMethod || 'card',
+      service,
+      location,
+      date,
+      time
     });
 
     await payment.save();
 
-    res.json({
-      clientSecret: paymentIntent.client_secret,
-      paymentId: payment._id,
-    });
+    // Populate booking info for response
+    await payment.populate('bookingId', 'service date time');
+
+    res.status(201).json({ payment });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('Create payment error:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Confirm payment
-router.post('/confirm', auth, async (req, res) => {
+// Get a specific payment
+router.get('/:id', auth, async (req, res) => {
   try {
-    const { paymentIntentId } = req.body;
+    const payment = await Payment.findOne({ _id: req.params.id, user: req.user._id })
+      .populate('bookingId', 'service date time');
 
-    const payment = await Payment.findOne({ stripePaymentIntentId: paymentIntentId });
     if (!payment) {
       return res.status(404).json({ message: 'Payment not found' });
     }
 
-    if (payment.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Access denied' });
+    res.json({ payment });
+  } catch (error) {
+    console.error('Get payment error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update payment status
+router.patch('/:id/status', auth, async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    if (!['pending', 'completed', 'failed', 'refunded'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
     }
 
-    // Update payment status
-    payment.status = 'succeeded';
+    const payment = await Payment.findOne({ _id: req.params.id, user: req.user._id });
+
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment not found' });
+    }
+
+    payment.status = status;
     await payment.save();
 
-    // Update booking status
-    const booking = await Booking.findById(payment.booking);
-    if (booking) {
-      booking.status = 'confirmed';
-      booking.paymentStatus = 'paid';
-      await booking.save();
-    }
+    // Populate booking info for response
+    await payment.populate('bookingId', 'service date time');
 
-    res.json({ message: 'Payment confirmed successfully' });
+    res.json({ payment });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('Update payment status error:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Get user's payment history
-router.get('/history', auth, async (req, res) => {
+// Delete a payment
+router.delete('/:id', auth, async (req, res) => {
   try {
-    const payments = await Payment.find({ user: req.user._id })
-      .populate('booking', 'service date time location status')
-      .sort({ createdAt: -1 });
+    const payment = await Payment.findOneAndDelete({ _id: req.params.id, user: req.user._id });
 
-    res.json({ payments });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
-
-// Stripe webhook (for production, this should be a separate endpoint)
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  let event;
-
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  if (event.type === 'payment_intent.succeeded') {
-    const paymentIntent = event.data.object;
-    const payment = await Payment.findOne({ stripePaymentIntentId: paymentIntent.id });
-
-    if (payment) {
-      payment.status = 'succeeded';
-      await payment.save();
-
-      const booking = await Booking.findById(payment.booking);
-      if (booking) {
-        booking.status = 'confirmed';
-        booking.paymentStatus = 'paid';
-        await booking.save();
-      }
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment not found' });
     }
-  }
 
-  res.json({ received: true });
+    res.json({ message: 'Payment deleted successfully' });
+  } catch (error) {
+    console.error('Delete payment error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 module.exports = router;

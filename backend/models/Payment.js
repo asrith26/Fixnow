@@ -4,34 +4,49 @@ const paymentSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
+    required: true
   },
-  booking: {
+  bookingId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Booking',
-    required: true,
+    required: true
   },
   amount: {
     type: Number,
     required: true,
+    min: 0
   },
-  currency: {
+  paymentMethod: {
     type: String,
-    default: 'usd',
+    enum: ['card', 'paypal', 'cash'],
+    default: 'card'
+  },
+  service: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  location: {
+    type: String,
+    trim: true
+  },
+  date: {
+    type: String,
+    required: true
+  },
+  time: {
+    type: String,
+    required: true
   },
   status: {
     type: String,
-    enum: ['pending', 'succeeded', 'failed'],
-    default: 'pending',
-  },
-  stripePaymentIntentId: {
-    type: String,
-    required: true,
+    enum: ['pending', 'completed', 'failed', 'refunded'],
+    default: 'completed'
   },
   createdAt: {
     type: Date,
-    default: Date.now,
-  },
+    default: Date.now
+  }
 });
 
 module.exports = mongoose.model('Payment', paymentSchema);
